@@ -1,1 +1,37 @@
+name: Update bookings.json
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Every 30 minutes (can adjust to 15)
+  workflow_dispatch:        # Manual trigger button in GitHub UI
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run update script
+        env:
+          NEXUDUS_API_USERNAME: ${{ secrets.NEXUDUS_API_USERNAME }}
+          NEXUDUS_API_PASSWORD: ${{ secrets.NEXUDUS_API_PASSWORD }}
+        run: node scripts/updateBookings.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add bookings.json
+          git diff --cached --quiet || git commit -m "Auto-update bookings.json"
+          git push
 
