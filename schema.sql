@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS bookings (
   booking_id BIGINT PRIMARY KEY,
-  coworker_id BIGINT NOT NULL,
+  coworker_id BIGINT,
   coworker_full_name TEXT,
   resource_name TEXT,
   from_time_utc TIMESTAMPTZ NOT NULL,
