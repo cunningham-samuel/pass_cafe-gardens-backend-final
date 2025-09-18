@@ -10,9 +10,7 @@ function todayRangeISO() {
   return { from: fix(start), to: fix(end) };
 }
 
-/**
- * Try multiple possible Nexudus shapes to find coworker fields.
- */
+// ---- helpers to handle different Nexudus shapes ----
 function extractCoworkerId(rec) {
   return (
     rec.Booking_CoworkerId ??
@@ -29,6 +27,7 @@ function extractCoworkerFullName(rec) {
 function extractResourceName(rec) {
   return rec.ResourceName ?? rec.Resource?.Name ?? null;
 }
+// ----------------------------------------------------
 
 async function upsertBooking(rec, logger = console) {
   const coworkerId = extractCoworkerId(rec);
