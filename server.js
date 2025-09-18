@@ -139,9 +139,10 @@ app.get('/api/get-bookings', async (req, res) => {
         const tariff = coworker.CoworkerContractTariffNames || '';
         console.log("Tariff names:", tariff);
         if (tariff.toLowerCase().includes("dedicated")) {
-            console.log("Dedicated desk member detected, skipping bookings check.");
-            return res.json({ dedicatedMember: true });
-        }
+  console.log("Dedicated desk member detected, skipping bookings check.");
+  return res.json({ dedicatedDesk: true }); // match your HTML
+}
+
 
         // STEP 2 - Get bookings for coworker today
         const { from, to } = getTodayDateRange();
@@ -179,14 +180,6 @@ cron.schedule('0 5 * * *', () => {
 }, { timezone: 'Europe/London' });
 
 // Optional: warm jobs on boot so you have data immediately
-(async () => {
-  try {
-    await dedicatedJob.runOnce(console);
-    await bookingsJob.runOnce(console);
-  } catch (e) {
-    console.error('Initial warm failed:', e);
-  }
-})();
 
 (async () => {
   try {
