@@ -128,6 +128,20 @@ app.get('/api/get-bookings', async (req, res) => {
     }
 });
 
+cron.schedule('*/5 8-19 * * 1-5', () => {
+  bookingsJob.runOnce(console).catch(err => console.error('bookingsJob failed:', err));
+}, { timezone: 'Europe/London' });
+
+cron.schedule('0 5 * * *', () => {
+  dedicatedJob.runOnce(console).catch(err => console.error('dedicatedMembersJob failed:', err));
+}, { timezone: 'Europe/London' });
+
+// Warm on boot (optional)
+(async () => {
+  try { await dedicatedJob.runOnce(console); await bookingsJob.runOnce(console); }
+  catch (e) { console.error('Initial warm failed:', e); }
+})();
+
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
