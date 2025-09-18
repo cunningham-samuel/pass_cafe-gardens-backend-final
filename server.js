@@ -12,6 +12,16 @@ const db = require('./db');
 const bookingsJob = require('./jobs/bookingsJob');
 const dedicatedJob = require('./jobs/dedicatedMembersJob');
 
+const fs = require('fs');
+const path = require('path');
+const db = require('./db'); // you already added this earlier
+
+async function autoMigrate() {
+  const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+  await db.query(sql);
+  console.log('✅ autoMigrate: schema ensured');
+}
+
 app.use(cors());
 
 const limiter = rateLimit({
@@ -178,6 +188,16 @@ cron.schedule('0 5 * * *', () => {
   }
 })();
 
+(async () => {
+  try {
+    await autoMigrate();                 // <-- runs the schema
+    // (optional) warm jobs on boot:
+    await dedicatedJob.runOnce(console);
+    await bookingsJob.runOnce(console);
+  } catch (e) {
+    console.error('Startup init failed:', e);
+  }
+})();
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
