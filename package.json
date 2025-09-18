@@ -4,8 +4,7 @@
   "description": "Nexudus Pass API Proxy",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "update-bookings": "node scripts/updateBookings.js"
+    "start": "node server.js"
   },
   "dependencies": {
   "axios": "^1.6.7",
