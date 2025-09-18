@@ -7,6 +7,11 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const port = process.env.PORT;
 
+const cron = require('node-cron');
+const db = require('./db');
+const bookingsJob = require('./jobs/bookingsJob');
+const dedicatedJob = require('./jobs/dedicatedMembersJob');
+
 app.use(cors());
 
 const limiter = rateLimit({
