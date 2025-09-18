@@ -18,6 +18,7 @@ const path = require('path');
 async function autoMigrate() {
   const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   await db.query(sql);
+  await db.query(`ALTER TABLE IF EXISTS bookings ALTER COLUMN coworker_id DROP NOT NULL`);
   console.log('✅ autoMigrate: schema ensured');
 }
 
