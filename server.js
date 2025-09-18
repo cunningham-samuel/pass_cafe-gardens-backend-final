@@ -14,7 +14,6 @@ const dedicatedJob = require('./jobs/dedicatedMembersJob');
 
 const fs = require('fs');
 const path = require('path');
-const db = require('./db'); // you already added this earlier
 
 async function autoMigrate() {
   const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
