@@ -22,6 +22,37 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// ADD: simple admin token auth for health/stats endpoints
+function adminAuth(req, res, next) {
+  const token = req.get('x-admin-token');
+  if (!token || token !== process.env.ADMIN_READONLY_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+// ADD: admin-only endpoints to verify DB + jobs
+app.get('/admin/health', adminAuth, (req, res) => {
+  res.json({ ok: true, tz: process.env.TZ || 'default', now: new Date().toISOString() });
+});
+
+app.get('/admin/stats', adminAuth, async (req, res) => {
+  const b = await db.query('SELECT COUNT(*)::int AS count FROM bookings');
+  const d = await db.query('SELECT COUNT(*)::int AS count FROM dedicated_members');
+  const j = await db.query('SELECT job_name, last_run_utc FROM job_state ORDER BY job_name');
+  res.json({ bookingsCount: b.rows[0].count, dedicatedCount: d.rows[0].count, jobs: j.rows });
+});
+
+app.get('/admin/bookings/sample', adminAuth, async (req, res) => {
+  const r = await db.query(`
+    SELECT booking_id, coworker_full_name, resource_name, from_time_utc, to_time_utc, status
+    FROM bookings
+    ORDER BY from_time_utc DESC
+    LIMIT 10
+  `);
+  res.json(r.rows);
+});
+
 const NEXUDUS_API_USERNAME = process.env.NEXUDUS_API_USERNAME;
 const NEXUDUS_API_PASSWORD = process.env.NEXUDUS_API_PASSWORD;
 const NEXUDUS_SHARED_SECRET = process.env.NEXUDUS_SHARED_SECRET;
@@ -128,6 +159,7 @@ app.get('/api/get-bookings', async (req, res) => {
     }
 });
 
+// ADD: scheduled jobs (Europe/London)
 cron.schedule('*/5 8-19 * * 1-5', () => {
   bookingsJob.runOnce(console).catch(err => console.error('bookingsJob failed:', err));
 }, { timezone: 'Europe/London' });
@@ -136,11 +168,16 @@ cron.schedule('0 5 * * *', () => {
   dedicatedJob.runOnce(console).catch(err => console.error('dedicatedMembersJob failed:', err));
 }, { timezone: 'Europe/London' });
 
-// Warm on boot (optional)
+// Optional: warm jobs on boot so you have data immediately
 (async () => {
-  try { await dedicatedJob.runOnce(console); await bookingsJob.runOnce(console); }
-  catch (e) { console.error('Initial warm failed:', e); }
+  try {
+    await dedicatedJob.runOnce(console);
+    await bookingsJob.runOnce(console);
+  } catch (e) {
+    console.error('Initial warm failed:', e);
+  }
 })();
+
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
