@@ -11,6 +11,7 @@ const cron = require('node-cron');
 const db = require('./db');
 const bookingsJob = require('./jobs/bookingsJob');
 const dedicatedJob = require('./jobs/dedicatedMembersJob');
+const visitorsJob = require('./jobs/visitorsJob');
 
 const fs = require('fs');
 const path = require('path');
