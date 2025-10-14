@@ -50,8 +50,9 @@ app.get('/admin/health', adminAuth, (req, res) => {
 app.get('/admin/stats', adminAuth, async (req, res) => {
   const b = await db.query('SELECT COUNT(*)::int AS count FROM bookings');
   const d = await db.query('SELECT COUNT(*)::int AS count FROM dedicated_members');
+  const v = await db.query('SELECT COUNT(*)::int AS count FROM visitors');
   const j = await db.query('SELECT job_name, last_run_utc FROM job_state ORDER BY job_name');
-  res.json({ bookingsCount: b.rows[0].count, dedicatedCount: d.rows[0].count, jobs: j.rows });
+  res.json({ bookingsCount: b.rows[0].count, dedicatedCount: d.rows[0].count, visitorsCount: v.rows[0].count, jobs: j.rows });
 });
 
 app.get('/admin/bookings/sample', adminAuth, async (req, res) => {
@@ -59,6 +60,16 @@ app.get('/admin/bookings/sample', adminAuth, async (req, res) => {
     SELECT booking_id, coworker_full_name, resource_name, from_time_utc, to_time_utc, status
     FROM bookings
     ORDER BY from_time_utc DESC
+    LIMIT 10
+  `);
+  res.json(r.rows);
+});
+
+app.get('/admin/visitors/sample', adminAuth, async (req, res) => {
+  const r = await db.query(`
+    SELECT visitor_id, full_name, email, expected_arrival_utc, arrived, visitor_code
+    FROM visitors
+    ORDER BY expected_arrival_utc DESC
     LIMIT 10
   `);
   res.json(r.rows);
@@ -180,6 +191,11 @@ cron.schedule('0 5 * * *', () => {
   dedicatedJob.runOnce(console).catch(err => console.error('dedicatedMembersJob failed:', err));
 }, { timezone: 'Europe/London' });
 
+// Every 5 mins on weekdays 08:00–19:59 London time
+cron.schedule('*/5 8-19 * * 1-5', () => {
+  visitorsJob.runOnce(console).catch(err => console.error('visitorsJob failed:', err));
+}, { timezone: 'Europe/London' });
+
 // Optional: warm jobs on boot so you have data immediately
 
 (async () => {
@@ -188,6 +204,7 @@ cron.schedule('0 5 * * *', () => {
     // (optional) warm jobs on boot:
     await dedicatedJob.runOnce(console);
     await bookingsJob.runOnce(console);
+    await visitorsJob.runOnce(console);
   } catch (e) {
     console.error('Startup init failed:', e);
   }
