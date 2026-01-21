@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   booking_id BIGINT PRIMARY KEY,
   coworker_id BIGINT,
   coworker_full_name TEXT,
+  coworker_email TEXT,
   resource_name TEXT,
   from_time_utc TIMESTAMPTZ NOT NULL,
   to_time_utc TIMESTAMPTZ NOT NULL,
@@ -46,4 +47,3 @@ CREATE TABLE IF NOT EXISTS visitors (
 
 CREATE INDEX IF NOT EXISTS idx_visitors_expected_arrival ON visitors (expected_arrival_utc);
 CREATE INDEX IF NOT EXISTS idx_visitors_arrived ON visitors (arrived);
-
