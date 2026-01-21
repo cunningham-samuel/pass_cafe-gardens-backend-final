@@ -86,9 +86,11 @@ async function runOnce(logger = console) {
   const records = res.data?.Records || [];
   logger.info?.(`Got ${records.length} bookings.`);
 
+  const seenIds = [];
   for (const r of records) {
     try {
       await upsertBooking(r, logger);
+      if (r?.Id != null) seenIds.push(r.Id);
     } catch (e) {
       logger.error?.(`Failed to upsert booking ${r?.Id}: ${e.message}`);
     }
@@ -98,15 +100,36 @@ async function runOnce(logger = console) {
   await db.query(`DELETE FROM bookings WHERE to_time_utc::date < NOW()::date;`);
 
   /*
-    OPTIONAL: if you want to remove cancelled (or otherwise non-Confirmed) bookings
-    from the table for today/future, uncomment or adapt the following line.
+    OPTIONAL RECONCILIATION (disabled by default)
 
-    Example: remove non-Confirmed bookings that are today or later:
-    await db.query(`DELETE FROM bookings WHERE status != 'Confirmed' AND to_time_utc::date >= NOW()::date;`);
+    If you set RECONCILE_CANCELLED=true in your environment, the job will:
+    - Mark as 'Cancelled' any bookings whose to_time_utc is today-or-later
+      that were NOT returned in this run (i.e. booking_id not in seenIds).
 
-    Alternatively, you might prefer to keep cancelled rows for auditing — choose
-    the behavior that matches your app's needs.
+    This is useful when the API does not return cancelled bookings, so we
+    can detect that a booking has disappeared and mark it cancelled locally.
+
+    To enable: set env var RECONCILE_CANCELLED=true in Render (or your host).
   */
+  if (process.env.RECONCILE_CANCELLED === 'true') {
+    try {
+      if (seenIds.length === 0) {
+        logger.warn?.('RECONCILE_CANCELLED enabled but no booking IDs were returned; skipping reconcile to avoid mass-cancel.');
+      } else {
+        // Update bookings for today/future that were not seen in this run
+        const upd = await db.query(
+          `UPDATE bookings
+           SET status = 'Cancelled', fetched_at_utc = NOW()
+           WHERE to_time_utc::date >= NOW()::date
+             AND booking_id <> ALL($1::bigint[])`,
+          [seenIds]
+        );
+        logger.info?.(`Reconciliation: marked ${upd.rowCount} bookings as Cancelled.`);
+      }
+    } catch (e) {
+      logger.error?.('Reconciliation step failed: ' + e.message);
+    }
+  }
 
   await db.query(`
     INSERT INTO job_state (job_name, last_run_utc)
