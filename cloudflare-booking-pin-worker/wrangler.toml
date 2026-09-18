@@ -1,0 +1,9 @@
+name = "distil-nexudus-booking-pin"
+main = "src/index.js"
+compatibility_date = "2026-09-18"
+workers_dev = true
+
+[vars]
+NEXUDUS_API_BASE = "https://spaces.nexudus.com/api"
+NOTE_PREFIX = "Door access code:"
+RETRY_DELAYS_MS = "0,250,750,1500,3000,6000"
